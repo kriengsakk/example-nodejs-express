@@ -18,4 +18,14 @@ jobs:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
+      - setup_remote_docker
+      - run: docker login $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      - run:
+          name: "Build docker image and push to docker hub"
+          command: |
+            cp Dockerfile.production Dockerfile
+            docker build -t krieng/training:latest .
+            docker build -t krieng/training:${CIRCLE_SHA1} .
+            docker push krieng/training:latest
+            docker push krieng/training:${CIRCLE_SHA1}
       - run: echo Done
