@@ -13,11 +13,12 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-
       - run: npm install
-      - run: npm run test
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
+      - run: npm test
+  ship:
       - setup_remote_docker
       - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run:
@@ -36,6 +37,7 @@ jobs:
             else
               echo "This is ${CIRCLE_BRANCH}"
             fi
+  deploy:
       - run:
           name: "Call to rancher to deploy"
           command: |
@@ -49,3 +51,21 @@ jobs:
                 --auto_complete --timeout 600 \
                 /
       - run: echo Done
+workflows:
+  version: 2
+  build_test_ship_deploy:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - ship:
+          requires:
+            - build
+            - test
+      - deploy:
+        type: approval
+        requires:
+          - build
+          - test
+          - ship
